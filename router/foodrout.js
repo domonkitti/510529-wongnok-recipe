@@ -26,13 +26,13 @@ const upload = multer({
 foodrouter.get("/", async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1; // Default to page 1 if no page query parameter is provided
-        const limit = 3; // Limit of 6 recipes per page
+        const limit = 9; 
         const skip = (page - 1) * limit; // Calculate the number of recipes to skip
 
         const userData = req.user;
         const doc = await Recipe.find().sort({_id: -1}).limit(limit).skip(skip); // Apply pagination
 
-        // Optionally, fetch the total count of recipes to calculate the total number of pages
+        
         const totalCount = await Recipe.countDocuments();
         const totalPages = Math.ceil(totalCount / limit);
         //console.log("เมนูหน้าหลัก",doc)
@@ -97,14 +97,14 @@ async function searchRecipesWithPagination(criterion, query, sortMethod, page, l
 
     return recipesWithLikes;
 }
-//เซิจอันเก่าไม่ใช้แต่ไม่กล้าลบ
+//เซิจ
 foodrouter.get('/search', async (req, res) => {
     try {
         const criterion = req.query.criterion;
         const query = req.query.query;
         const sortMethod = req.query.sort;
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 3; 
+        const limit = parseInt(req.query.limit) || 9; 
         let searchCriteria = {};
         if (query) {
             searchCriteria[criterion] = new RegExp(query, 'i');
@@ -295,3 +295,99 @@ foodrouter.get('/search', async (req, res) => {
 
 
 module.exports = foodrouter
+//------------------------------------ของเก่าที่ทำเอง
+// ------------index
+// foodrouter.get("/", async (req, res) => {
+//     try {
+//         const userData = req.user;
+//         const doc = await Recipe.find().sort({ _id: -1 });
+//         res.render('index.ejs', {recipes: doc,userData: userData});
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).send("An error occurred");
+//     }
+// })
+
+// อันนี้คือ การเมิจกัน ของ2 colection แต่ไม่แน่ใจว่า ถ้าเปลี่น db ต้องเปลี่ยนไหม 
+// อันนี้ยากจริงจดกันลืม
+// async function addLikesToRecipes() {
+//     try {
+//       const recipesWithLikes = await Recipe.aggregate([
+//         {
+//           $lookup: {
+//             from: "likes", 
+//             localField: "_id", // base
+//             foreignField: "recipeId", // likes collection > localField
+//             as: "likes" // จับกันมาแ้ลวเรียกมันว่า like.ในนี้จะมี ข้อมูลถูกจับคู่หลายๆตัว
+//           }
+//         },
+//         {
+//           $addFields: {
+//             likesCount: { $size: "$likes" } // นับจำนวน likes
+//           }
+//         },
+//         {
+//           $project: {
+//             likes: 0 // ลบ filed likes ที่ดป็น array ทิ้ง
+//           }
+//         }
+//       ]);
+  
+//       console.log(recipesWithLikes);
+//     } catch (error) {
+//       console.error("Error adding likes to recipes: ", error);
+//     }
+//   }
+//------------------หน้าแรก----------------
+//----------ระบบค้นหา
+// foodrouter.get('/search', async (req, res) => {
+//     try {
+//         const criterion = req.query.criterion;
+//         const query = req.query.query;
+//         const sortMethod = req.query.sort; 
+//         //console.log(sortMethod)
+//         let searchCriteria = {};
+//         if (query) { // Only add to search criteria if query is not empty
+//             searchCriteria[criterion] = new RegExp(query, 'i');
+//         }
+
+//         const userData = req.user
+
+//         let sortStage = {};
+//         if (sortMethod === "Like") {
+//             sortStage = { $sort: { likesCount: -1 } };
+//         } else if (sortMethod === "New") {
+//             sortStage = { $sort: { Date: -1 } };
+//         }
+
+//         const recipesWithLikes = await Recipe.aggregate([
+//             {
+//                 $match: searchCriteria
+//             },
+//             {
+//                 $lookup: {
+//                     from: "likes",
+//                     localField: "_id",
+//                     foreignField: "recipeId",
+//                     as: "likes"
+//                 }
+//             },
+//             {
+//                 $addFields: {
+//                     likesCount: { $size: "$likes" }
+//                 }
+//             },
+//             {
+//                 $project: {
+//                     likes: 0 
+//                 }
+//             },
+//             sortStage 
+//         ]);
+
+//         res.render('search.ejs', {recipes: recipesWithLikes, userData: userData});
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).send('Error processing your search.');
+//     }
+// });
