@@ -177,7 +177,7 @@ foodrouter.get('/edit', async (req, res) => {
         const criterion = req.user.displayname;
         const userData = req.user
         const docs = await Recipe.find({Author:criterion}).sort({ _id: -1 }).exec();
-        res.render('edit.ejs', {recipes: docs,userData: userData}); // Assuming you want to render a page with the results
+        res.render('edit.ejs', {recipes: docs,userData: userData});
     } catch (err) {
         console.error(err);
         res.render('404', {errorMessage: 'กรุณา login'})
