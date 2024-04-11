@@ -29,7 +29,7 @@ idrouter.post("/signup/newidregister", async (req, res) => {//อัพ เม�
         let document = new Userid(documentData);
         console.log(documentData)
         await document.save();
-        res.redirect('/');
+        res.redirect('/login');
     } catch (error) {
         console.error("Error during asynchronous operation", error);
         res.render('404', {errorMessage: 'ไอดีซ้ำกับท่านอื่น/เกิดข้อผิดพลาด'})

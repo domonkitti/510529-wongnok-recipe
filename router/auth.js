@@ -31,7 +31,7 @@ function authorize(roles = []) {
 
         if (roles.length && !roles.includes(req.user.role)) {
             // user's role is not authorized
-            return res.status(403).send("แก...ไม่มีสิทธิ");
+            return res.status(403).send("กรุณาไปlogin");
         }
 
         // authentication and authorization successful
