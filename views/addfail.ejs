@@ -1,0 +1,86 @@
+<%- include('./top/nav') %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>แบบฟอร์มบันทึกข้อมูล</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <script src="js/jquery-3.4.1.slim.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css/all.css" />
+    <link rel="stylesheet" href="css/starstyle.css">
+</head>
+<body style="background-color: white;">   
+<div class="container">
+    <div class="row my-3">
+        <div class="col-md-8 mb-4"> 
+            <form class="form-horizontal" action="/new" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="control-label col-sm-2">ชื่ออาหาร</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control" name="Name">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2">ราคา</label>
+                    <div class="col-sm-10">
+                        <input type="number" class="form-control" name="Price">
+                    </div>
+                </div>
+                                <div class="form-group">
+                    <label class="control-label col-sm-2">วัตถุดิบ</label>
+                    <div class="col-sm-10">
+                        <textarea class="form-control" name="Ingredients"></textarea>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2">ภาพอาาหาร</label>
+                    <div class="col-sm-10">
+                        <input type="file" class="form-control" name="Image">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2">วิธีทำ</label>
+                    <div class="col-sm-10">
+                        <textarea class="form-control" name="HowToCook"></textarea>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2">เวลาในการทำ</label>
+                    <div class="col-sm-10">
+                        <input type="number" class="form-control" name="TimeToCook">
+                    </div>
+                </div>
+                     <div class="form-group">
+                        <label class="control-label col-sm-2" for="hardness">ความยาก</label>
+                        <div class="col-sm-10">
+                            <select id="hardness" name="Hardness" class="form-control">
+                                <option value="">Select Difficulty</option>
+                                <option value="1">ง่าย</option>
+                                <option value="2">ปานกลาง</option>
+                                <option value="3">ยาก</option>
+                                <option value="4">ผู้ชำนาญการ</option>
+                            </select>
+                        </div>
+                    </div>
+                <div class="form-group">
+                    <label class="control-label col-sm-2">วันที่</label>
+                    <div class="col-sm-10">
+                        <input type="date" class="form-control" name="Date" value="<%= new Date().toISOString().split('T', 1)[0] %>" readonly>
+                    <label class="control-label col-sm-2">ชื่อผู้เขียนเมนู</label>
+                        <input type="text" class="form-control" name="Author" value="<%= userData.displayname %>" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

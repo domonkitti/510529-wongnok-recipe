@@ -1,0 +1,297 @@
+//----------------ตั้งค่า และนำเข้า--------------------------------
+const express = require('express')
+const foodrouter = express.Router()
+const path = require('path')
+const Recipe = require('../model/food.js')
+const multer = require('multer')
+const { authenticate, authorize } = require('./auth.js')
+const rolecheck = require('./rolecheck.js')
+const RandR = require('../model/RandR.js')
+
+const { log } = require('console')
+const storage = multer.diskStorage({
+    destination:function(req,file,cb){
+        cb(null,'./public/images/food')
+    },
+    filename:function(req,file,cb){
+        cb(null,Date.now()+".jpg")
+    }
+})
+const upload = multer({
+    storage:storage
+})
+
+//------------------------------ส่วนของการแสดงผล  ------------------------//
+//ไป index
+foodrouter.get("/", async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1; // Default to page 1 if no page query parameter is provided
+        const limit = 3; // Limit of 6 recipes per page
+        const skip = (page - 1) * limit; // Calculate the number of recipes to skip
+
+        const userData = req.user;
+        const doc = await Recipe.find().sort({_id: -1}).limit(limit).skip(skip); // Apply pagination
+
+        // Optionally, fetch the total count of recipes to calculate the total number of pages
+        const totalCount = await Recipe.countDocuments();
+        const totalPages = Math.ceil(totalCount / limit);
+        //console.log("เมนูหน้าหลัก",doc)
+
+        res.render('index.ejs', {
+            recipes: doc,
+            userData: userData,
+            totalPages: totalPages,
+            currentPage: page
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("An error occurred");
+    }
+});
+
+
+
+//-----------------Search Page------------------
+//เซิจและ sort
+async function searchRecipesWithPagination(criterion, query, sortMethod, page, limit) {
+    let searchCriteria = {};
+    if (query) {
+        searchCriteria[criterion] = new RegExp(query, 'i');
+    }
+
+    let sortStage = {};
+    if (sortMethod === "Like") {
+        sortStage = { likesCount: -1 };
+    } else if (sortMethod === "New") {
+        sortStage = { Date: -1 };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const recipesWithLikes = await Recipe.aggregate([
+        {
+            $match: searchCriteria
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "recipeId",
+                as: "likes"
+            }
+        },
+        {
+            $addFields: {
+                likesCount: { $size: "$likes" }
+            }
+        },
+        {
+            $project: {
+                likes: 0 
+            }
+        },
+        { $sort: sortStage },
+        { $skip: skip },
+        { $limit: limit }
+    ]);
+
+    return recipesWithLikes;
+}
+//เซิจอันเก่าไม่ใช้แต่ไม่กล้าลบ
+foodrouter.get('/search', async (req, res) => {
+    try {
+        const criterion = req.query.criterion;
+        const query = req.query.query;
+        const sortMethod = req.query.sort;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 3; 
+        let searchCriteria = {};
+        if (query) {
+            searchCriteria[criterion] = new RegExp(query, 'i');
+        }
+
+        const recipes = await searchRecipesWithPagination(criterion, query, sortMethod, page, limit);
+
+        // Adjusted to count documents based on the same search criteria
+        const count = await Recipe.aggregate([
+            { $match: searchCriteria },
+            { $count: "filteredCount" }
+        ]);
+
+        // Use the count from the aggregation if available, otherwise 0
+        const filteredCount = count.length > 0 ? count[0].filteredCount : 0;
+        const totalPages = Math.ceil(filteredCount / limit);
+
+        res.render('search.ejs', {
+            recipes: recipes,
+            totalPages: totalPages,
+            currentPage: page,
+            userData: req.user
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error processing your search.');
+    }
+});
+//แสดงผลรายเมนู
+foodrouter.get('/recipe/:id', async (req, res) => {  //รับข้อมูลมา  หา แล้วส่งไป render
+    try {
+        const userData = req.user;
+        const recipe_id = req.params.id; //รับ มาบอกว่าเป็น id นะ   
+        //console.log("หมูกรอบ",recipe_id)
+        const doc = await Recipe.findOne({ _id: recipe_id,}).exec(); //รอให้หาเสร็จ> หาที่ field _id ที่เท่ากับ Recipe id ที่ได้มา เก็บไว้ทืี่ doc
+        const ratingsAndReviews = await RandR.find({foodid: recipe_id }).exec()
+        //console.log(ratingsAndReviews)
+        res.render('recipe.ejs',{recipe:doc,userData: userData,RandR: ratingsAndReviews})//เรนเดอที่ recipe โดดใช้ชื่อว่า recipe ที่มีข้อมูบ doc
+        // You might want to send a response here, for example:
+        // res.json(doc);
+    } catch (err) {
+        res.status(500).send('An error occurred');
+    }
+})
+//--------------ส่วนระบบจัดการ---------------------
+//ไปที่form
+foodrouter.get("/add",authenticate,(req,res)=>{
+    const userData = req.user;
+    //console.log("ส่งชื่อมา=",userData)
+    res.render('add.ejs',{userData: userData})
+})
+//trigger สร้างรายการ
+foodrouter.post("/new",upload.single('Image'), async (req, res) => {//อัพ เมนูใหม่ๆ
+    try {let documentData = {
+            ...req.body,
+            Image : req.file ? req.file.filename : null, // Include the filename of the uploaded picture
+        };
+        let document = new Recipe(documentData);
+        
+        await document.save();
+        res.redirect('/add');
+    } catch (error) {
+        console.error("Error during asynchronous operation", error);
+        res.status(500).send("An error occurred");
+    }
+})
+//ไปหน้ารวมเมนูของแต่ละคน(อ้างอิงตามusertrack)
+foodrouter.get('/edit', async (req, res) => {
+    try {
+        const criterion = req.user.displayname;
+        const userData = req.user
+        const docs = await Recipe.find({Author:criterion}).sort({ _id: -1 }).exec();
+        res.render('edit.ejs', {recipes: docs,userData: userData}); // Assuming you want to render a page with the results
+    } catch (err) {
+        console.error(err);
+        res.render('404', {errorMessage: 'กรุณา login'})
+    }
+});
+//เข้าสู่หน้าแก้ไข
+foodrouter.get('/edit/:id', async (req, res) => {  //รับข้อมูลมา  หา แล้วส่งไป render
+    try {
+        const recipe_id = req.params.id;
+        //console.log("เซิจหาแก้",recipe_id)
+        const userData = req.user; //รับ มาบอกว่าเป็น id นะ   
+        const doc = await Recipe.findOne({ _id: recipe_id,}).exec(); //รอให้หาเสร็จ> หาที่ field _id ที่เท่ากับ Recipe id ที่ได้มา เก็บไว้ทืี่ doc
+        //console.log(doc)
+        res.render('fix.ejs',{recipe:doc,userData: userData})//เรนเดอที่ recipe โดดใช้ชื่อว่า recipe ที่มีข้อมูบ doc
+        // You might want to send a response here, for example:
+        // res.json(doc);
+    } catch (err) {
+        res.render('404', {errorMessage: 'ไม่ทราบสาเหตุ'})
+    }
+})
+//trigger ลบ
+foodrouter.post("/delete", async (req, res) => {
+    const { delete_id } = req.body;
+    try {
+        await Recipe.findByIdAndDelete(delete_id);
+        res.redirect('/edit');
+    } catch (error) {
+        //console.error("Error deleting the document:", error);
+        res.render('404', {errorMessage: 'ไม่ทราบสาเหตุ'})
+    }
+});
+//trigger แก้ไขข้อมูล
+foodrouter.post("/update", upload.single('Image'), async (req, res) => {
+    const update_id = req.body.update_id; // Assuming this is the _id of the document to update
+    try {
+        let updateData = {
+            ...req.body,
+            Image: req.file ? req.file.filename : undefined, //ใช้รูปใหม่
+        };
+        if (!req.file) {
+            delete updateData.Image; // ไม่ให้รูปเก่าโดนลบถ้าไม่มีรูปใหม่
+        }
+        await Recipe.findByIdAndUpdate(update_id, updateData, { new: true });
+
+        res.redirect('/edit');
+    } catch (error) {
+        //console.error("Error updating the document:", error);
+        res.render('404', {errorMessage: 'อัพเดทเมนูผิดพลาดผมก็ไม่เคยเห็นหน้านี้นะ'})
+    }
+});
+
+//------------------------ส่วนของadmin--------------------ยังไม่ได้ทำ
+foodrouter.get("/admin", rolecheck, (req, res) => {
+    console.log("Attempting to access /admin");
+    res.render('admin.ejs');
+});
+
+
+//------------------------ระบบ Rating----------------------
+//like
+foodrouter.get('/recipe/like/:who/:foodid', rolecheck, async (req, res) => {
+    //console.log(req.params)
+    const who=req.params.who;
+    const foodid=req.params.foodid;
+    //console.log("เซิจหาแก้",who,foodid)
+    try {let documentData = {
+        who:who,
+        like:"like",
+        foodid:foodid
+    }
+        let document = new RandR(documentData);
+        await document.save();
+        res.redirect(req.headers.referer);
+} catch (error) {
+    //console.error("Error during asynchronous operation", error);
+    res.render('404', {errorMessage: 'ให้คะแนนไม่สำเร็จ'})
+}
+})
+//dislike สงสัยว่าทำแยกทำไม ตอนทำไม่คิดไง
+foodrouter.get('/recipe/dislike/:who/:foodid', rolecheck, async (req, res) => {
+    const who=req.params.who;
+    const foodid=req.params.foodid;
+    //console.log("เซิจหาแก้",who)
+    try {let documentData = {
+        who:who,
+        like:"dislike",
+        foodid:foodid
+    }
+        let document = new RandR(documentData);
+        await document.save();
+        res.redirect(req.headers.referer);
+} catch (error) {
+    //console.error("Error during asynchronous operation", error);
+    res.render('404', {errorMessage: 'ให้คะแนนไม่สำเร็จ'})
+}
+})
+
+//-----------------------สำหรับ postman-------------------
+foodrouter.get('/search', async (req, res) => {
+    try {
+        const criterion = req.query.criterion; // Field to search in, e.g., "Ingredients"
+        const query = req.query.query; // Search term, e.g., "pork"
+        let searchCriteria = {};
+        searchCriteria[criterion] = new RegExp(query, 'i'); // i for case insensitive
+        const userData = req.user
+        const docs = await Recipe.find(searchCriteria).exec();
+        res.json(docs); // Assuming you want to render a page with the results
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('ไม่พบสิ่งที่ค้นหา');
+    }
+});
+
+
+
+
+module.exports = foodrouter

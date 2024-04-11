@@ -1,0 +1,17 @@
+<div class="navbar navbar-dark bg-dark shadow-sm">
+  <div class="container d-flex justify-content-between align-items-center">
+    <a href="/" class="navbar-brand d-flex align-items-center">
+      <strong>WONG NOK</strong>
+    </a>
+<% if (userData && userData.role === 1) { %>
+    <div class="text-end">
+        <a class="text">ยินดีต้อนรับ <%= userData.displayname %></a> 
+        <a href="/add" class="btn btn-sm btn-outline-light">Add</a>
+        <a href="/edit" class="btn btn-sm btn-outline-light">Edit</a>
+        <a href="/logout" class="btn btn-sm btn-outline-light">Logout</a>
+    </div>
+<% } else { %>
+    <div class="text-end">
+        <a href="/login" class="btn btn-sm btn-outline-light">Login</a>
+    </div>
+<% } %>
