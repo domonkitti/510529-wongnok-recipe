@@ -15,8 +15,8 @@ function authenticate(req, res, next) {
         //console.log("โค้ดที่ถูกแก้=",decoded)
         next();
     } catch (error) {
-        //next()
-        res.status(401).send("Please log in to access this page.");
+        next()
+        //res.status(401).send("Please log in to access this page.");
     }
 }
 //ตัว match roleของผู้ที่loginเข้ามา

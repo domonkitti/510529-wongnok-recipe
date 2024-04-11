@@ -121,7 +121,7 @@ foodrouter.get('/search', async (req, res) => {
         // Use the count from the aggregation if available, otherwise 0
         const filteredCount = count.length > 0 ? count[0].filteredCount : 0;
         const totalPages = Math.ceil(filteredCount / limit);
-
+        //console.log(recipes)
         res.render('search.ejs', {
             recipes: recipes,
             totalPages: totalPages,
@@ -141,7 +141,7 @@ foodrouter.get('/recipe/:id', async (req, res) => {  //รับข้อมู�
         //console.log("หมูกรอบ",recipe_id)
         const doc = await Recipe.findOne({ _id: recipe_id,}).exec(); //รอให้หาเสร็จ> หาที่ field _id ที่เท่ากับ Recipe id ที่ได้มา เก็บไว้ทืี่ doc
         const ratingsAndReviews = await RandR.find({foodid: recipe_id }).exec()
-        //console.log(ratingsAndReviews)
+        //console.log(doc)
         res.render('recipe.ejs',{recipe:doc,userData: userData,RandR: ratingsAndReviews})//เรนเดอที่ recipe โดดใช้ชื่อว่า recipe ที่มีข้อมูบ doc
         // You might want to send a response here, for example:
         // res.json(doc);
@@ -276,21 +276,48 @@ foodrouter.get('/recipe/dislike/:who/:foodid', rolecheck, async (req, res) => {
 })
 
 //-----------------------สำหรับ postman-------------------
-foodrouter.get('/search', async (req, res) => {
+//เซิจ
+foodrouter.get('/search/json', async (req, res) => {
     try {
-        const criterion = req.query.criterion; // Field to search in, e.g., "Ingredients"
-        const query = req.query.query; // Search term, e.g., "pork"
+        const criterion = req.query.criterion;
+        const query = req.query.query;
+        const sortMethod = req.query.sort;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 9; 
         let searchCriteria = {};
-        searchCriteria[criterion] = new RegExp(query, 'i'); // i for case insensitive
-        const userData = req.user
-        const docs = await Recipe.find(searchCriteria).exec();
-        res.json(docs); // Assuming you want to render a page with the results
+        if (query) {
+            searchCriteria[criterion] = new RegExp(query, 'i');
+        }
+
+        const recipes = await searchRecipesWithPagination(criterion, query, sortMethod, page, limit);
+
+        // Adjusted to count documents based on the same search criteria
+        const count = await Recipe.aggregate([
+            { $match: searchCriteria },
+            { $count: "filteredCount" }
+        ]);
+
+        // Use the count from the aggregation if available, otherwise 0
+        const filteredCount = count.length > 0 ? count[0].filteredCount : 0;
+        const totalPages = Math.ceil(filteredCount / limit);
+        //console.log(recipes)
+        res.json(recipes)
+        ;
     } catch (err) {
         console.error(err);
-        res.status(500).send('ไม่พบสิ่งที่ค้นหา');
+        res.status(500).send('Error processing your search.');
     }
 });
-
+foodrouter.get("/json", async (req, res) => {
+    try {
+        const userData = req.user;
+        const doc = await Recipe.find().sort({ _id: -1 });
+        res.json({recipes: doc});
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("An error occurred");
+    }
+})
 
 
 
