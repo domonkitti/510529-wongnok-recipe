@@ -26,10 +26,10 @@ const upload = multer({
 //ไป index
 foodrouter.get("/",getRecipesWithLikes, async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1; // Default to page 1 if no page query parameter is provided
+        const page = parseInt(req.query.page) || 1; 
         const limit = 9; 
-        const skip = (page - 1) * limit; // Calculate the number of recipes to skip
-
+        const skip = (page - 1) * limit; 
+        //คำสั่ง java(เ้พราะ มาจากโมเดล combine เป็น array ไปแล้วไม่คุ้นเอามากๆ)
         const userData = req.user;
         const doc = req.recipesWithLikes.slice(skip, skip + limit).reverse();
         const totalCount = req.recipesWithLikes.length;
@@ -61,12 +61,12 @@ foodrouter.get('/search', getRecipesWithLikes, async (req, res) => {
         const query = req.query.query;
         const sortMethod = req.query.sort;
 
-        // Filter array based on criterion and query using JavaScript
+        // ใช้ ja ไม่ใช่ mongoose
         const filteredData = req.recipesWithLikes.filter(recipe => {
             return query ? new RegExp(query, 'i').test(recipe[criterion]) : true;
         });
 
-        // Sorting the array based on sortMethod
+    
         let sortedData;
         if (sortMethod === "Like") {
             sortedData = [...filteredData].sort((a, b) => b.likesCount - a.likesCount);

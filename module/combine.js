@@ -39,8 +39,8 @@ async function getRecipesWithLikes(req, res, next) {
       }
     ]);
 
-    req.recipesWithLikes = recipesWithLikes; // Store the result in the request object to pass it down to next middleware
-    next(); // Proceed to the next middleware/function
+    req.recipesWithLikes = recipesWithLikes;
+    next(); 
 } catch (error) {
     console.error("Error during aggregation: ", error);
     res.status(500).send("Error during aggregation");
