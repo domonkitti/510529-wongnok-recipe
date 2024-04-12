@@ -109,6 +109,7 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary"><%= item.Hardness %></button>
                   </div>
                   <small class="text-muted">ระยะเวลา<%= Math.floor(item.TimeToCook/60) %>ชั่วโมง<%=item.TimeToCook%60%>นาที </small>
+                  <small class="text-muted">ถูกใจ<%= Math.floor(item.likesCount) %> </small>
                 </div>
               </div>
             </div>
@@ -132,10 +133,15 @@
     }
   </script>
 <div style="text-align: right; margin-top: 20px;">
+  <!-- Display 'Previous' button only if the current page is greater than 1 -->
   <% if (currentPage > 1) { %>
       <button onclick="updatePageParam(<%= currentPage - 1 %>)" class="btn btn-primary">Previous</button>
   <% } %>
+  
+  <!-- Display the current page and total pages -->
   <span style="display: inline-block; padding: 10px; color: #007bff;">Page <%= currentPage %> of <%= totalPages %></span>
+  
+  <!-- Display 'Next' button only if the current page is less than total pages -->
   <% if (currentPage < totalPages) { %>
       <button onclick="updatePageParam(<%= currentPage + 1 %>)" class="btn btn-primary">Next</button>
   <% } %>

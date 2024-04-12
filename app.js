@@ -2,10 +2,10 @@ const express = require('express')
 const path = require('path')
 const foodrouter = require('./router/foodrout')
 const idrouter = require('./router/idrout')
-const { authenticate } = require('./router/auth')
+const { authenticate } = require('./module/auth')
 const app = express()
 const cookieParser = require('cookie-parser')
-const { usertrack } = require('./router/usertrack')
+const { usertrack } = require('./module/usertrack')
 
 global.loggedIn = null
 

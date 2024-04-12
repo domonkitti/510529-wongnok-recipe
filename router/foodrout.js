@@ -4,9 +4,10 @@ const foodrouter = express.Router()
 const path = require('path')
 const Recipe = require('../model/food.js')
 const multer = require('multer')
-const { authenticate, authorize } = require('./auth.js')
-const rolecheck = require('./rolecheck.js')
+const { authenticate, authorize } = require('../module/auth.js')
+const rolecheck = require('../module/rolecheck.js')
 const RandR = require('../model/RandR.js')
+const getRecipesWithLikes = require('../module/combine.js')
 
 const { log } = require('console')
 const storage = multer.diskStorage({
@@ -23,19 +24,18 @@ const upload = multer({
 
 //------------------------------ส่วนของการแสดงผล  ------------------------//
 //ไป index
-foodrouter.get("/", async (req, res) => {
+foodrouter.get("/",getRecipesWithLikes, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1; // Default to page 1 if no page query parameter is provided
         const limit = 9; 
         const skip = (page - 1) * limit; // Calculate the number of recipes to skip
 
         const userData = req.user;
-        const doc = await Recipe.find().sort({_id: -1}).limit(limit).skip(skip); // Apply pagination
-
-        
-        const totalCount = await Recipe.countDocuments();
+        const doc = req.recipesWithLikes.slice(skip, skip + limit).reverse();
+        const totalCount = req.recipesWithLikes.length;
         const totalPages = Math.ceil(totalCount / limit);
         //console.log("เมนูหน้าหลัก",doc)
+        
 
         res.render('index.ejs', {
             recipes: doc,
@@ -53,86 +53,48 @@ foodrouter.get("/", async (req, res) => {
 
 //-----------------Search Page------------------
 //เซิจและ sort
-async function searchRecipesWithPagination(criterion, query, sortMethod, page, limit) {
-    let searchCriteria = {};
-    if (query) {
-        searchCriteria[criterion] = new RegExp(query, 'i');
-    }
-
-    let sortStage = {};
-    if (sortMethod === "Like") {
-        sortStage = { likesCount: -1 };
-    } else if (sortMethod === "New") {
-        sortStage = { Date: -1 };
-    }
-
-    const skip = (page - 1) * limit;
-
-    const recipesWithLikes = await Recipe.aggregate([
-        {
-            $match: searchCriteria
-        },
-        {
-            $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "recipeId",
-                as: "likes"
-            }
-        },
-        {
-            $addFields: {
-                likesCount: { $size: "$likes" }
-            }
-        },
-        {
-            $project: {
-                likes: 0 
-            }
-        },
-        { $sort: sortStage },
-        { $skip: skip },
-        { $limit: limit }
-    ]);
-
-    return recipesWithLikes;
-}
-//เซิจ
-foodrouter.get('/search', async (req, res) => {
+foodrouter.get('/search', getRecipesWithLikes, async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 3;
         const criterion = req.query.criterion;
         const query = req.query.query;
         const sortMethod = req.query.sort;
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 9; 
-        let searchCriteria = {};
-        if (query) {
-            searchCriteria[criterion] = new RegExp(query, 'i');
+
+        // Filter array based on criterion and query using JavaScript
+        const filteredData = req.recipesWithLikes.filter(recipe => {
+            return query ? new RegExp(query, 'i').test(recipe[criterion]) : true;
+        });
+
+        // Sorting the array based on sortMethod
+        let sortedData;
+        if (sortMethod === "Like") {
+            sortedData = [...filteredData].sort((a, b) => b.likesCount - a.likesCount);
+        } else if (sortMethod === "New") {
+            sortedData = [...filteredData].reverse();
         }
 
-        const recipes = await searchRecipesWithPagination(criterion, query, sortMethod, page, limit);
+        // Pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedData = sortedData.slice(startIndex, endIndex);
 
-        // Adjusted to count documents based on the same search criteria
-        const count = await Recipe.aggregate([
-            { $match: searchCriteria },
-            { $count: "filteredCount" }
-        ]);
+        // Counting total matching documents
+        const totalCount = filteredData.length;
+        const totalPages = Math.ceil(totalCount / limit);
 
-        // Use the count from the aggregation if available, otherwise 0
-        const filteredCount = count.length > 0 ? count[0].filteredCount : 0;
-        const totalPages = Math.ceil(filteredCount / limit);
-        //console.log(recipes)
         res.render('search.ejs', {
-            recipes: recipes,
+            recipes: paginatedData,
+            userData: req.user,
             totalPages: totalPages,
-            currentPage: page,
-            userData: req.user
+            currentPage: page
         });
     } catch (err) {
         console.error(err);
-        res.status(500).send('Error processing your search.');
+        res.status(500).send("An error occurred during the search");
     }
 });
+
 //แสดงผลรายเมนู
 foodrouter.get('/recipe/:id', async (req, res) => {  //รับข้อมูลมา  หา แล้วส่งไป render
     try {

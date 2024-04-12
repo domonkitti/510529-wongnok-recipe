@@ -15,7 +15,7 @@ const ratingSchema = mongoose.Schema({
         type:String
       },
 });
-let RandR = mongoose.model('RandR', ratingSchema);
+let RandR = mongoose.model('randrs', ratingSchema);
 module.exports = RandR
 module.exports.saveRandR=function(model,document){
     model.save(document)
