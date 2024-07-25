@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Task</title>
-    <link href="/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
     <style>
         .scrollable-table {
             max-height: 400px;
@@ -13,90 +14,110 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container mt-5">
         <h2>แก้ไขข้อมูล</h2>
         <form action="/update/<%= task.id %>" method="POST">
-            <div class="mb-3">
-                <label for="main_task_name" class="form-label">ชื่อโปรเจกต์หลัก</label>
-                <input type="text" class="form-control" id="main_task_name" name="main_task_name" value="<%= task.main_task_name %>" required>
+            <div class="ui fluid pointing menu">
+                <a class="item active" data-tab="general">ข้อมูลทั่วไป</a>
+                <a class="item" data-tab="budget">งบประมาณ</a>
             </div>
-
-            <% subTasks.forEach(function(subTask) { %>
+            <div class="ui bottom attached segment active tab" data-tab="general">
+                <!-- เนื้อหาของแท็บข้อมูลทั่วไป -->
                 <div class="card mb-3">
-                    <div class="card-header">
-                        <h4><%= subTask.sub_task_name %></h4>
-                    </div>
-                    <div class="card-body scrollable-table">
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Year</th>
-                                        <% 
-                                            let startYear = parseInt(task.start_year);
-                                            let endYear = parseInt(task.end_year);
-                                            let years = [];
-                                            for (let year = startYear; year <= endYear; year++) {
-                                                years.push(year);
-                                            }
-                                        %>
-                                        <% years.forEach(function(year) { %>
-                                            <th colspan="4"><%= year %></th>
-                                        <% }); %>
-                                    </tr>
-                                    <tr>
-                                        <th>Budget/Expend</th>
-                                        <% years.forEach(function(year) { %>
-                                            <th colspan="2">Budget</th>
-                                            <th colspan="2">Expend</th>
-                                        <% }); %>
-                                    </tr>
-                                    <tr>
-                                        <th>Remain/Initial</th>
-                                        <% years.forEach(function(year) { %>
-                                            <th>Remain</th>
-                                            <th>Initial</th>
-                                            <th>Remain</th>
-                                            <th>Initial</th>
-                                        <% }); %>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% staticExpenses.forEach(function(expense) { %>
-                                        <tr>
-                                            <td><%= expense.item_description %></td>
-                                            <% years.forEach(function(year) { %>
-                                                <% 
-                                                    let budgetRemainDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'budget' && detail.remain_initial === 'remain'); 
-                                                    let expendRemainDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'expend' && detail.remain_initial === 'remain'); 
-                                                    let budgetInitialDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'budget' && detail.remain_initial === 'initial'); 
-                                                    let expendInitialDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'expend' && detail.remain_initial === 'initial'); 
-                                                %>
-                                                <td>
-                                                    <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_remain_budget" value="<%= budgetRemainDetail ? budgetRemainDetail.value : '' %>">
-                                                </td>
-                                                <td>
-                                                    <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_initial_budget" value="<%= budgetInitialDetail ? budgetInitialDetail.value : '' %>">
-                                                </td>
-                                                <td>
-                                                    <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_remain_expend" value="<%= expendRemainDetail ? expendRemainDetail.value : '' %>">
-                                                </td>
-                                                <td>
-                                                    <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_initial_expend" value="<%= expendInitialDetail ? expendInitialDetail.value : '' %>">
-                                                </td>
-                                            <% }); %>
-                                        </tr>
-                                    <% }); %>
-                                </tbody>
-                            </table>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="main_task_name" class="form-label">ชื่อโปรเจกต์หลัก</label>
+                            <input type="text" class="form-control" id="main_task_name" name="main_task_name" value="<%= task.main_task_name %>" required>
                         </div>
+                        <!-- เพิ่มฟิลด์ข้อมูลทั่วไปอื่น ๆ ที่นี่ -->
                     </div>
                 </div>
-            <% }); %>
-
+            </div>
+            <div class="ui bottom attached segment tab" data-tab="budget">
+                <!-- เนื้อหาของแท็บงบประมาณ -->
+                <% subTasks.forEach(function(subTask) { %>
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h4><%= subTask.sub_task_name %></h4>
+                        </div>
+                        <div class="card-body scrollable-table">
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Year</th>
+                                            <% 
+                                                let startYear = parseInt(task.start_year);
+                                                let endYear = parseInt(task.end_year);
+                                                let years = [];
+                                                for (let year = startYear; year <= endYear; year++) {
+                                                    years.push(year);
+                                                }
+                                            %>
+                                            <% years.forEach(function(year) { %>
+                                                <th colspan="4"><%= year %></th>
+                                            <% }); %>
+                                        </tr>
+                                        <tr>
+                                            <th>Budget/Expend</th>
+                                            <% years.forEach(function(year) { %>
+                                                <th colspan="2">Budget</th>
+                                                <th colspan="2">Expend</th>
+                                            <% }); %>
+                                        </tr>
+                                        <tr>
+                                            <th>Remain/Initial</th>
+                                            <% years.forEach(function(year) { %>
+                                                <th>Remain</th>
+                                                <th>Initial</th>
+                                                <th>Remain</th>
+                                                <th>Initial</th>
+                                            <% }); %>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% staticExpenses.forEach(function(expense) { %>
+                                            <tr>
+                                                <td><%= expense.item_description %></td>
+                                                <% years.forEach(function(year) { %>
+                                                    <% 
+                                                        let budgetRemainDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'budget' && detail.remain_initial === 'remain'); 
+                                                        let expendRemainDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'expend' && detail.remain_initial === 'remain'); 
+                                                        let budgetInitialDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'budget' && detail.remain_initial === 'initial'); 
+                                                        let expendInitialDetail = expenseDetails.find(detail => detail.sub_task_id === subTask.id && detail.expense_id === expense.id && detail.year === year && detail.budget_expend === 'expend' && detail.remain_initial === 'initial'); 
+                                                    %>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_remain_budget" value="<%= budgetRemainDetail ? budgetRemainDetail.value : '' %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_initial_budget" value="<%= budgetInitialDetail ? budgetInitialDetail.value : '' %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_remain_expend" value="<%= expendRemainDetail ? expendRemainDetail.value : '' %>">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="form-control" name="value_<%= subTask.id %>_<%= expense.id %>_<%= year %>_initial_expend" value="<%= expendInitialDetail ? expendInitialDetail.value : '' %>">
+                                                    </td>
+                                                <% }); %>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
             <button type="submit" class="btn btn-primary">บันทึกการเปลี่ยนแปลง</button>
         </form>
     </div>
-    <script src="/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.menu .item').tab();
+        });
+    </script>
 </body>
 </html>
